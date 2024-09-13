@@ -1,4 +1,4 @@
-module Mips.Alu where
+module Alu where
 
 import Data.Binary
 

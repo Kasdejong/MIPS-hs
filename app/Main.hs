@@ -1,6 +1,6 @@
 module Main where
 
-import Mips.CPU
+import CPU
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"

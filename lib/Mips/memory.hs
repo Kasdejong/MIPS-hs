@@ -1,4 +1,4 @@
-module Mips.Memory where
+module Memory where
 
 import Data.Int
 import Data.Bits
@@ -6,10 +6,10 @@ import Data.Binary
 import Data.Sequence
 import Prelude hiding ((!!), length, lookup, take)
 
-import Mips.Util
+import Util
 
-data MEMORY = Memory {mem :: Seq Word8, regs :: Seq Word32, wires :: WIRES, pc :: Int}
-data WIRES = Wires {cond :: Bool, alu_o :: Word32}
+data MEMORY = Memory {mem :: Seq Word8, regs :: Seq Word32, wires :: WIRES, pc :: Int} deriving (Show, Eq)
+data WIRES = Wires {cond :: Bool, alu_o :: Word32} deriving (Show, Eq)
 
 handleMemWrite :: MEMORY -> Int -> Int -> Word32 -> MEMORY
 handleMemWrite oldMem idx nBytes input = 
@@ -25,10 +25,11 @@ handleMemWrite oldMem idx nBytes input =
 
 readMemWord :: Int -> Seq Word8 -> Word32
 readMemWord idx mem = 
-    fromIntegral (mem !! idx) +
-    shiftL 8 (fromIntegral (mem !! idx)) +
-    shiftL 16 (fromIntegral (mem !! idx)) +
-    shiftL 24 (fromIntegral (mem !! idx))
+    let b0 = fromIntegral (mem !! idx)
+        b1 = fromIntegral (mem !! (idx + 1))
+        b2 = fromIntegral (mem !! (idx + 2))
+        b3 = fromIntegral (mem !! (idx + 3))
+    in (b0 `shiftL` 24) .|. (b1 `shiftL` 16) .|. (b2 `shiftL` 8) .|. b3
 
 handleRegWrite :: MEMORY -> Int -> Word32 -> MEMORY
 handleRegWrite oldMem idx input =

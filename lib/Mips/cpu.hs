@@ -1,20 +1,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE InstanceSigs #-}
-module Mips.CPU where
+module CPU where
 import Data.Bits (Bits(shiftR))
 import Data.Int
 import Data.Binary
 import Prelude hiding ((!!))
 
-import Mips.Util
-import Mips.Operations
-import Mips.Alu
-import Mips.Memory
+import Util
+import Operations
+import Alu
+import Memory
 
-data IF_ID = IfId {if_ir :: Word32, if_pc :: Int} deriving Show
-data ID_EX = IdEx {id_ir, id_a, id_b :: Word32, id_pc :: Int, id_imm :: Word16} deriving Show
-data EX_MEM = ExMem {ex_ir, ex_alu_o, ex_b :: Word32} deriving Show
-data MEM_WB = MemWb {mem_ir, mem_alu_o, mem_lmd :: Word32} deriving Show
+data IF_ID = IfId {if_ir :: Word32, if_pc :: Int} deriving (Show, Eq)
+data ID_EX = IdEx {id_ir, id_a, id_b :: Word32, id_pc :: Int, id_imm :: Word16} deriving (Show, Eq)
+data EX_MEM = ExMem {ex_ir, ex_alu_o, ex_b :: Word32} deriving (Show, Eq)
+data MEM_WB = MemWb {mem_ir, mem_alu_o, mem_lmd :: Word32} deriving (Show, Eq)
 
 class Tickable state input output where
     tick :: state -> input -> (state, output)

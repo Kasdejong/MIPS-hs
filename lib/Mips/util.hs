@@ -1,4 +1,4 @@
-module Mips.Util where 
+module Util where 
 
 import Data.Bits
 import Data.Int
