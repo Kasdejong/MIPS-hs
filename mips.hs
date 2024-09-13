@@ -1,20 +1,21 @@
 {-# LANGUAGE DataKinds #-}
 import Data.Bits (Bits(shiftR))
 import Data.Int
+import Data.Binary
 
+import Prelude hiding ((!!))
+
+import Memory
 import Util
 import Operations
 import Alu
+import Memory
 main = print "hi"
 
-
-data WIRES = Wires {cond :: Bool, alu_o :: Int}
-data MEMORY = Memory {mem, regs :: [Int], wires :: WIRES, pc :: Int}
-
-data IF_ID = IfId {if_ir, if_pc :: Int} deriving Show
-data ID_EX = IdEx {id_ir, id_a, id_b, id_pc, id_imm :: Int} deriving Show
-data EX_MEM = ExMem {ex_ir, ex_alu_o, ex_b :: Int} deriving Show
-data MEM_WB = MemWb {mem_ir, mem_alu_o, mem_lmd :: Int} deriving Show
+data IF_ID = IfId {if_ir :: Word32, if_pc :: Int} deriving Show
+data ID_EX = IdEx {id_ir, id_a, id_b :: Word32, id_pc :: Int, id_imm :: Word16} deriving Show
+data EX_MEM = ExMem {ex_ir, ex_alu_o, ex_b :: Word32} deriving Show
+data MEM_WB = MemWb {mem_ir, mem_alu_o, mem_lmd :: Word32} deriving Show
 
 data PlReg where
   IF_ID_REG :: IF_ID -> PlReg
@@ -32,8 +33,8 @@ instance Tickable MEMORY (Maybe reg) IF_ID where
     tick :: MEMORY -> Maybe reg -> (MEMORY, IF_ID)
     tick state Nothing = 
         (state, IfId{
-            if_ir = mem state !! pc state, 
-            if_pc = if cond (wires state) then alu_o (wires state) else pc state + 4
+            if_ir = readMemWord (pc state) (mem state), 
+            if_pc = if cond (wires state) then fromIntegral (alu_o (wires state)) else pc state + 4
         })
 
 -- ID stage
@@ -41,8 +42,8 @@ instance Tickable MEMORY IF_ID ID_EX where
     tick :: MEMORY -> IF_ID -> (MEMORY, ID_EX)
     tick state input = 
         (state, IdEx {
-            id_a = regs state !! rs (if_ir input), 
-            id_b = regs state !! rt (if_ir input), 
+            id_a = regs state !! fromIntegral (rs (if_ir input)), 
+            id_b = regs state !! fromIntegral (rt (if_ir input)), 
             id_pc = if_pc input, 
             id_ir = if_ir input, 
             id_imm = imm (if_ir input)
@@ -57,13 +58,13 @@ instance Tickable MEMORY ID_EX EX_MEM where
                     ex_ir = id_ir input, 
                     ex_alu_o = case encodingType code of
                         RType -> compute code (id_a input) (id_b input)
-                        IType -> compute code (id_a input) (id_imm input),
+                        IType -> compute code (id_a input) (zeroExtend (id_imm input)),
                     ex_b = 0
                 })   
             LS -> 
                 (state, ExMem{
                     ex_ir = id_ir input,
-                    ex_alu_o = id_a input + id_imm input,
+                    ex_alu_o = id_a input + zeroExtend (id_imm input),
                     ex_b = id_b input
                 })
             Br -> 
@@ -74,7 +75,7 @@ instance Tickable MEMORY ID_EX EX_MEM where
                         wires = 
                             Wires{
                                 cond = id_a input == 0,
-                                alu_o = id_pc input + id_imm input * 4
+                                alu_o = fromIntegral (id_pc input) + fromIntegral (id_imm input) * 4
                             },
                         pc = pc state
                     },
@@ -97,10 +98,23 @@ instance Tickable MEMORY EX_MEM MEM_WB where
                     mem_alu_o = ex_alu_o input,
                     mem_lmd = 0
                 })
-            LS -> handleLS state input
+            LS -> handleMEM state input
         where code = opcode (ex_ir input)
 
+instance Tickable MEMORY MEM_WB (Maybe reg) where
+    tick :: MEMORY -> MEM_WB -> (MEMORY, Maybe reg)
+    tick state input | mem_ir input == 0 = (state, Nothing)
+    tick state input =
+        case instrCat code of
+            Alu -> 
+                (handleRegWrite state (fromIntegral (locationReg (mem_ir input))) (mem_alu_o input), Nothing)
+                where locationReg = if writesFromRd code then rd else rt
+            LS -> 
+                if isLoad code then
+                    (handleRegWrite state (fromIntegral (rt (mem_ir input))) (mem_lmd input), Nothing)
+                else (state, Nothing)
+        where code = opcode (mem_ir input) 
 
 
-handleLS :: MEMORY -> EX_MEM -> (MEMORY, MEM_WB)
-handleLS a b = (Memory{}, MemWb{})
+handleMEM :: MEMORY -> EX_MEM -> (MEMORY, MEM_WB)
+handleMEM a b = (Memory{}, MemWb{})

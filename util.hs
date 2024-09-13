@@ -1,30 +1,47 @@
 module Util where 
 
 import Data.Bits
+import Data.Int
+import Data.Binary
+import Data.Sequence
 -- offset 0 = least significant bit
-getFromIr :: Int -> Int -> Int -> Int
+getFromIr :: Int -> Int -> Word32 -> Word32
 getFromIr offset len bytes = shiftR bytes offset .&. 2^len
 
-opcode :: Int -> Int
-opcode = getFromIr 26 6
+extractBytes :: Word32 -> [Word8]
+extractBytes w =
+  [ fromIntegral (shiftR w 24) .&. 0xFF
+  , fromIntegral (shiftR w 16) .&. 0xFF
+  , fromIntegral (shiftR w 8)  .&. 0xFF
+  , fromIntegral w             .&. 0xFF
+  ]
 
-rs :: Int -> Int
-rs = getFromIr 21 5
+zeroExtend :: Word16 -> Word32
+zeroExtend = fromIntegral
 
-rt :: Int -> Int
-rt = getFromIr 16 5
+getByteSeq :: Word32 -> Seq Word8
+getByteSeq word = fromList (extractBytes word)
 
-rd :: Int -> Int
-rd = getFromIr 11 5
+opcode :: Word32 -> Word8
+opcode word = fromIntegral (getFromIr 26 6 word)
 
-shamt :: Int -> Int
-shamt = getFromIr 6 5
+rs :: Word32 -> Word32
+rs word = fromIntegral (getFromIr 21 5 word)
 
-funct :: Int -> Int
-funct = getFromIr 0 6
+rt :: Word32 -> Word8
+rt word = fromIntegral (getFromIr 16 5 word)
 
-imm :: Int -> Int
-imm = getFromIr 0 16
+rd :: Word32 -> Word8
+rd word = fromIntegral (getFromIr 11 5 word)
 
-addr :: Int -> Int
-addr = getFromIr 0 26
+shamt :: Word32 -> Word8
+shamt word = fromIntegral (getFromIr 6 5 word)
+
+funct :: Word32 -> Word8
+funct word = fromIntegral (getFromIr 0 6 word)
+
+imm :: Word32 -> Word16
+imm word = fromIntegral (getFromIr 0 16 word)
+
+addr :: Word32 -> Word32
+addr word = fromIntegral (getFromIr 0 26 word)

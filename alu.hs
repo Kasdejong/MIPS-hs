@@ -1,4 +1,6 @@
 module Alu where
 
-compute :: Int -> Int -> Int -> Int
+import Data.Binary
+
+compute :: Word8 -> Word32 -> Word32 -> Word32
 compute opcode a b = 0
