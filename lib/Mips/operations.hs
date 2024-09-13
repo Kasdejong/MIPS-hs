@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
-module Mips.Operations where
+module Operations where
 import Data.Binary
 -- Define the OpKind data type with subtypes based on the table
 -- Define the OpKind data type
